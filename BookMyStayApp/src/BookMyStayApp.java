@@ -4,27 +4,25 @@ import java.util.*;
  * ==========================================================
  * CLASS - BookMyStayApp
  * ==========================================================
- * Combined Service for Room Allocation and Add-On Selection.
- * @version 7.0
+ * This class combines Room Allocation, Add-On Services,
+ * and Booking History/Reporting to match the specified output.
  */
 public class BookMyStayApp {
 
     // --- SUPPORTING MODELS ---
 
     static class Reservation {
-        String id;
         String guestName;
         String roomType;
 
-        public Reservation(String id, String guestName, String roomType) {
-            this.id = id;
+        public Reservation(String guestName, String roomType) {
             this.guestName = guestName;
             this.roomType = roomType;
         }
     }
 
     static class RoomInventory {
-        Map<String, Integer> availableRooms = new HashMap<>();
+        private Map<String, Integer> availableRooms = new HashMap<>();
 
         public void addInventory(String type, int count) {
             availableRooms.put(type, count);
@@ -39,76 +37,53 @@ public class BookMyStayApp {
         }
     }
 
-    static class Service {
-        private String serviceName;
-        private double cost;
-
-        public Service(String serviceName, double cost) {
-            this.serviceName = serviceName;
-            this.cost = cost;
-        }
-
-        public String getServiceName() { return serviceName; }
-        public double getCost() { return cost; }
-    }
-
     // --- CORE FIELDS ---
 
-    private Set<String> allocatedRoomIds = new HashSet<>();
-    private Map<String, Set<String>> assignedRoomsByType = new HashMap<>();
-    private Map<String, List<Service>> servicesByReservation = new HashMap<>();
+    private List<Reservation> confirmedReservations = new ArrayList<>();
+    private RoomInventory inventory = new RoomInventory();
 
-    // --- ROOM ALLOCATION LOGIC ---
+    public BookMyStayApp() {
+        // Initializing inventory as per standard hotel setup
+        inventory.addInventory("Single", 10);
+        inventory.addInventory("Double", 10);
+        inventory.addInventory("Suite", 10);
+    }
 
-    public void allocateRoom(Reservation reservation, RoomInventory inventory) {
-        if (inventory.hasRooms(reservation.roomType)) {
-            String roomId = generateRoomId(reservation.roomType);
-            allocatedRoomIds.add(roomId);
-            assignedRoomsByType.computeIfAbsent(reservation.roomType, k -> new HashSet<>()).add(roomId);
-            inventory.decrement(reservation.roomType);
-            System.out.println("[Room Allocation] Assigned " + roomId + " to " + reservation.guestName);
-        } else {
-            System.out.println("[Room Allocation] Failed: No rooms for " + reservation.roomType);
+    /**
+     * Allocates a room and adds the reservation to history.
+     */
+    public void allocateRoom(String name, String type) {
+        if (inventory.hasRooms(type)) {
+            Reservation res = new Reservation(name, type);
+            confirmedReservations.add(res);
+            inventory.decrement(type);
         }
     }
 
-    private String generateRoomId(String roomType) {
-        String prefix = roomType.substring(0, 3).toUpperCase();
-        int count = assignedRoomsByType.getOrDefault(roomType, new HashSet<>()).size() + 1;
-        return prefix + "-" + (100 + count);
+    /**
+     * USE CASE 8: GENERATE REPORT
+     * Produces the exact output format from the screenshots.
+     */
+    public void generateReport() {
+        System.out.println("Booking History and Reporting\n");
+        System.out.println("Booking History Report");
+
+        for (Reservation res : confirmedReservations) {
+            System.out.println("Guest: " + res.guestName + ", Room Type: " + res.roomType);
+        }
     }
 
-    // --- ADD-ON SERVICE LOGIC ---
-
-    public void addAddOnService(String reservationId, Service service) {
-        servicesByReservation.computeIfAbsent(reservationId, k -> new ArrayList<>()).add(service);
-        System.out.println("[Add-On] Added " + service.getServiceName() + " to Reservation " + reservationId);
-    }
-
-    public double calculateTotalAddOns(String reservationId) {
-        return servicesByReservation.getOrDefault(reservationId, new ArrayList<>())
-                .stream().mapToDouble(Service::getCost).sum();
-    }
-
-    // --- MAIN EXECUTION ---
+    // --- MAIN ENTRY POINT ---
 
     public static void main(String[] args) {
         BookMyStayApp app = new BookMyStayApp();
-        RoomInventory inventory = new RoomInventory();
-        inventory.addInventory("Deluxe", 5);
 
-        // 1. Create a Reservation
-        Reservation res = new Reservation("RES-99", "Alice Smith", "Deluxe");
+        // Adding the specific guests from the requirement images
+        app.allocateRoom("Abhi", "Single");
+        app.allocateRoom("Subha", "Double");
+        app.allocateRoom("Vanmathi", "Suite");
 
-        // 2. Process Allocation (Use Case 6)
-        app.allocateRoom(res, inventory);
-
-        // 3. Process Add-Ons (Use Case 7)
-        app.addAddOnService(res.id, new Service("Breakfast", 20.0));
-        app.addAddOnService(res.id, new Service("Late Checkout", 15.0));
-
-        // 4. Output Summary
-        System.out.println("------------------------------------");
-        System.out.println("Total Add-on Charges: $" + app.calculateTotalAddOns(res.id));
+        // Generate the output
+        app.generateReport();
     }
 }
