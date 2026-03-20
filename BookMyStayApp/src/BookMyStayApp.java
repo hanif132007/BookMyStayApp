@@ -1,89 +1,103 @@
-import java.util.*;
+import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
 
+// ==========================================
+// 1. CUSTOM EXCEPTION
+// ==========================================
 /**
- * ==========================================================
- * CLASS - BookMyStayApp
- * ==========================================================
- * This class combines Room Allocation, Add-On Services,
- * and Booking History/Reporting to match the specified output.
+ * Use Case 9: Error Handling & Validation
+ * This custom exception represents invalid booking scenarios.
  */
+class InvalidBookingException extends Exception {
+    public InvalidBookingException(String message) {
+        super(message);
+    }
+}
+
+// ==========================================
+// 2. SUPPORTING DOMAIN CLASSES
+// ==========================================
+class RoomInventory {
+    private List<String> availableRooms = List.of("Single", "Double", "Suite");
+
+    public boolean isRoomAvailable(String roomType) {
+        return availableRooms.contains(roomType);
+    }
+}
+
+class BookingRequestQueue {
+    public void addRequest(String name, String room) {
+        System.out.println("Processing: Adding " + name + " (" + room + ") to the processing queue...");
+    }
+}
+
+// ==========================================
+// 3. RESERVATION VALIDATOR
+// ==========================================
+class ReservationValidator {
+    /**
+     * Validates booking input. Centralizing rules avoids duplication.
+     * @throws InvalidBookingException if validation fails
+     */
+    public void validate(String guestName, String roomType, RoomInventory inventory)
+            throws InvalidBookingException {
+
+        // Rule 1: Name cannot be empty
+        if (guestName == null || guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
+        }
+
+        // Rule 2: Room type must exist in inventory
+        if (!inventory.isRoomAvailable(roomType)) {
+            throw new InvalidBookingException("Room type '" + roomType + "' is not available or does not exist.");
+        }
+    }
+}
+
+// ==========================================
+// 4. MAIN APPLICATION CLASS
+// ==========================================
 public class BookMyStayApp {
 
-    // --- SUPPORTING MODELS ---
-
-    static class Reservation {
-        String guestName;
-        String roomType;
-
-        public Reservation(String guestName, String roomType) {
-            this.guestName = guestName;
-            this.roomType = roomType;
-        }
-    }
-
-    static class RoomInventory {
-        private Map<String, Integer> availableRooms = new HashMap<>();
-
-        public void addInventory(String type, int count) {
-            availableRooms.put(type, count);
-        }
-
-        public boolean hasRooms(String type) {
-            return availableRooms.getOrDefault(type, 0) > 0;
-        }
-
-        public void decrement(String type) {
-            availableRooms.put(type, availableRooms.get(type) - 1);
-        }
-    }
-
-    // --- CORE FIELDS ---
-
-    private List<Reservation> confirmedReservations = new ArrayList<>();
-    private RoomInventory inventory = new RoomInventory();
-
-    public BookMyStayApp() {
-        // Initializing inventory as per standard hotel setup
-        inventory.addInventory("Single", 10);
-        inventory.addInventory("Double", 10);
-        inventory.addInventory("Suite", 10);
-    }
-
-    /**
-     * Allocates a room and adds the reservation to history.
-     */
-    public void allocateRoom(String name, String type) {
-        if (inventory.hasRooms(type)) {
-            Reservation res = new Reservation(name, type);
-            confirmedReservations.add(res);
-            inventory.decrement(type);
-        }
-    }
-
-    /**
-     * USE CASE 8: GENERATE REPORT
-     * Produces the exact output format from the screenshots.
-     */
-    public void generateReport() {
-        System.out.println("Booking History and Reporting\n");
-        System.out.println("Booking History Report");
-
-        for (Reservation res : confirmedReservations) {
-            System.out.println("Guest: " + res.guestName + ", Room Type: " + res.roomType);
-        }
-    }
-
-    // --- MAIN ENTRY POINT ---
-
     public static void main(String[] args) {
-        BookMyStayApp app = new BookMyStayApp();
+        // Display application header
+        System.out.println("=== Booking Validation System ===");
 
-        // Adding the specific guests from the requirement images
-        app.allocateRoom("Abhi", "Single");
-        app.allocateRoom("Subha", "Double");
-        app.allocateRoom("Vanmathi", "Suite");
+        Scanner scanner = new Scanner(System.in);
 
-        // Generate the output
-        app.generateReport();
+        // Initialize required components
+        RoomInventory inventory = new RoomInventory();
+        ReservationValidator validator = new ReservationValidator();
+        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+
+        try {
+            // Collect User Input
+            System.out.print("Enter Guest Name: ");
+            String guestName = scanner.nextLine();
+
+            System.out.print("Enter Room Type (Single/Double/Suite): ");
+            String roomType = scanner.nextLine();
+
+            // Perform Centralized Validation
+            validator.validate(guestName, roomType, inventory);
+
+            // Logic if validation passes
+            bookingQueue.addRequest(guestName, roomType);
+            System.out.println("Success: Your booking has been queued!");
+
+        } catch (InvalidBookingException e) {
+            // Handle domain-specific validation errors gracefully
+            System.out.println("Booking failed: " + e.getMessage());
+
+        } catch (Exception e) {
+            // Catch-all for unexpected system errors
+            System.out.println("A system error occurred: " + e.getMessage());
+
+        } finally {
+            // Resource cleanup
+            scanner.close();
+            System.out.println("Session closed.");
+        }
     }
 }
